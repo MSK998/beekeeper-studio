@@ -40,17 +40,20 @@ function yesNoResult(value: boolean) {
   return `<div class="yesno-select">${result}</div>`
 }
 
+export const MAX_CELL_CHARS = 256;
+
 export default {
   niceString(value: any, truncate = false, binaryEncoding?: 'hex' | 'base64') {
     let cellValue = value.toString();
+    const maxChars = truncate ? MAX_CELL_CHARS : undefined
     if (_.isTypedArray(value)) {
-      cellValue = typedArrayToString(value, binaryEncoding)
+      cellValue = typedArrayToString(value, binaryEncoding, maxChars)
     } else if (_.isTypedArray(value?.buffer)) { // HACK: mongodb sends buffer this way
-      cellValue = typedArrayToString(value.buffer, binaryEncoding)
+      cellValue = typedArrayToString(value.buffer, binaryEncoding, maxChars)
     } else if (_.isArray(value) || _.isObject(value)) {
       cellValue = JSON.stringify(value)
     }
-    return truncate ? _.truncate(cellValue, { length: 256 }) : cellValue
+    return truncate ? _.truncate(cellValue, { length: MAX_CELL_CHARS }) : cellValue
   },
   cellFormatter(cell: CellComponent) {
     if (_.isNil(cell.getValue())) {
