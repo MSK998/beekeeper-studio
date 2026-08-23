@@ -2,6 +2,7 @@ import _ from 'lodash'
 import { Mutators } from '../lib/data/tools'
 import { TabulatorFormatterParams } from '@/common/tabulator'
 import helpers, { escapeHtml } from '@shared/lib/tabulator'
+import { accumulate, profilingEnabled } from '@/lib/perf'
 export const NULL = '(NULL)'
 import {CellComponent} from 'tabulator-tables'
 
@@ -74,8 +75,10 @@ export default {
     ) {
       const classNames = []
       let cellValue = cell.getValue()
+      const isBinary = cellValue instanceof Uint8Array
+      const formatStart = isBinary && profilingEnabled() ? performance.now() : 0
 
-      if (cellValue instanceof Uint8Array) {
+      if (isBinary) {
         classNames.push('binary-type')
       }
 
@@ -84,6 +87,9 @@ export default {
         return nullValue
       }
       cellValue = this.niceString(cellValue, true, params.binaryEncoding)
+      if (formatStart) {
+        accumulate('render.cellFormatter.binary', performance.now() - formatStart)
+      }
       cellValue = cellValue.replace(/\n/g, ' ↩ ');
 
       // removing the <pre> will break selection / copy paste, see ResultTable

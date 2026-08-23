@@ -3,6 +3,7 @@ import Vue from 'vue';
 import { CancelableQuery, DatabaseFilterOptions, ExtendedTableColumn, FilterOptions, NgQueryResult, OrderBy, PrimaryKeyColumn, Routine, SchemaFilterOptions, SupportedFeatures, TableChanges, TableFilter, TableColumn, TableIndex, TableOrView, TablePartition, TableResult, TableProperties, StreamResults, TableInsert, TableTrigger, ImportFuncOptions, FieldDescriptor, FieldEditData, ServerStatistics } from "../db/models";
 import { AlterPartitionsSpec, AlterTableSpec, CreateTableSpec, IndexAlterations, RelationAlterations, TableKey } from "@shared/lib/dialects/models";
 import { IConnection } from "@/common/interfaces/IConnection";
+import { timeAsync } from "../perf";
 
 
 export class ElectronUtilityConnectionClient implements IBasicDatabaseClient {
@@ -239,7 +240,7 @@ export class ElectronUtilityConnectionClient implements IBasicDatabaseClient {
   }
 
   async selectTop(table: string, offset: number, limit: number, orderBy: OrderBy[], filters: string | TableFilter[], schema?: string, selects?: string[], database?: string): Promise<TableResult> {
-    return await Vue.prototype.$util.send('conn/selectTop', { table, offset, limit, orderBy, filters, schema, selects, database });
+    return await timeAsync('ipc.conn/selectTop', () => Vue.prototype.$util.send('conn/selectTop', { table, offset, limit, orderBy, filters, schema, selects, database }));
   }
 
   async selectTopSql(table: string, offset: number, limit: number, orderBy: OrderBy[], filters: string | TableFilter[], schema?: string, selects?: string[]): Promise<string> {

@@ -14,6 +14,7 @@ import { Dialect as IdentifierDialect, IdentifyResult } from 'sql-query-identifi
 import { Transcoder } from '../serialization/transcoders';
 import { ColumnReference, TableReference } from 'sql-query-identifier/lib/defines';
 import { safelyIdentify } from '../sql_tools';
+import { accumulate, profilingEnabled } from '../../perf';
 
 const log = rawLog.scope('BasicDatabaseClient');
 const logger = () => log;
@@ -599,11 +600,22 @@ export abstract class BasicDatabaseClient<RawResultType extends BaseQueryResult,
       })
     })
 
+    const trackBytes = profilingEnabled()
+    let binaryBytes = 0
+    const start = trackBytes ? performance.now() : 0
+
     // Mutate rows based on the found transcoders
     for (const row of qr.rows) {
       Object.entries(fieldTranscoders).forEach(([key, transcoder]) => {
         row[key] = transcoder.serialize(row[key])
+        if (trackBytes && _.isTypedArray(row[key])) {
+          binaryBytes += row[key].byteLength
+        }
       })
+    }
+
+    if (trackBytes) {
+      accumulate('db.serializeQueryResult', performance.now() - start, binaryBytes)
     }
 
     return qr.rows;

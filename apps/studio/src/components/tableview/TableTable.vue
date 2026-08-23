@@ -346,6 +346,7 @@ import { tabulatorForTableData } from "@/common/tabulator";
 import { TransportTabulatorPersistence } from "@/common/transport/TransportTabulatorPersistence";
 import { getFilters, setFilters } from "@/common/transport/TransportOpenTab"
 import { ExpandablePath, parseRowDataForJsonViewer } from '@/lib/data/jsonViewer'
+import { timeAsync } from '@/lib/perf'
 import { stringToTypedArray, removeUnsortableColumnsFromSortBy } from "@/common/utils";
 import { UpdateOptions } from "@/lib/data/jsonViewer";
 
@@ -1961,7 +1962,7 @@ export default Vue.extend({
           try {
             // lets just make column selection a front-end only thing
             const selects = ['*']
-            const response = await this.connection.selectTop(
+            const response = await timeAsync('tableview.selectTop', () => this.connection.selectTop(
               this.table.name,
               offset,
               this.limit + 1, // +1 to check if there is a next page
@@ -1969,7 +1970,7 @@ export default Vue.extend({
               filters,
               this.table.schema,
               selects
-            );
+            ));
 
             // TODO(@day): it has come to my attention that the below comment does not properly explain my confusion, where is this allowFilter business coming from and WHY
             // the fuck is this??
