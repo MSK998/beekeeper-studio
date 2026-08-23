@@ -346,7 +346,7 @@ import { tabulatorForTableData } from "@/common/tabulator";
 import { TransportTabulatorPersistence } from "@/common/transport/TransportTabulatorPersistence";
 import { getFilters, setFilters } from "@/common/transport/TransportOpenTab"
 import { ExpandablePath, parseRowDataForJsonViewer } from '@/lib/data/jsonViewer'
-import { timeAsync } from '@/lib/perf'
+import { timeAsync, timeSync, accumulate, profilingEnabled } from '@/lib/perf'
 import { stringToTypedArray, removeUnsortableColumnsFromSortBy } from "@/common/utils";
 import { UpdateOptions } from "@/lib/data/jsonViewer";
 
@@ -378,6 +378,7 @@ export default Vue.extend({
       response: null,
       rawTableKeys: [],
       primaryKeys: null,
+      tabulatorProcessStart: null as number | null,
       pendingChanges: {
         inserts: [],
         updates: [],
@@ -1121,6 +1122,7 @@ export default Vue.extend({
         </span>`
     },
     maybeScrollAndSetWidths() {
+      const start = profilingEnabled() ? performance.now() : 0
       if (this.columnWidths) {
         try {
           this.tabulator.blockRedraw()
@@ -1138,6 +1140,9 @@ export default Vue.extend({
       if (this.preLoadScrollPosition) {
         this.tableHolder.scrollLeft = this.preLoadScrollPosition
         this.preLoadScrollPosition = null
+      }
+      if (start) {
+        accumulate('tableview.maybeScrollAndSetWidths', performance.now() - start)
       }
     },
     async close() {
@@ -1157,7 +1162,7 @@ export default Vue.extend({
     async initialize() {
       this.initialized = true
       this.resetPendingChanges()
-      await this.$store.dispatch('updateTableColumns', this.table)
+      await timeAsync('tableview.updateTableColumns', () => this.$store.dispatch('updateTableColumns', this.table))
       await this.getTableKeys();
       await this.loadPersistence();
 
@@ -1227,7 +1232,13 @@ export default Vue.extend({
         onRangeChange: this.handleRangeChange,
       });
       this.tabulator.on('cellEdited', this.cellEdited)
-      this.tabulator.on('dataProcessed', this.maybeScrollAndSetWidths)
+      this.tabulator.on('dataProcessed', () => {
+        if (this.tabulatorProcessStart !== null) {
+          accumulate('tableview.tabulator.process', performance.now() - this.tabulatorProcessStart)
+          this.tabulatorProcessStart = null
+        }
+        this.maybeScrollAndSetWidths()
+      })
       this.tabulator.on('tableBuilt', () => {
         this.tabulator.modules.selectRange.restoreFocus()
       })
@@ -1996,7 +2007,7 @@ export default Vue.extend({
 
             if (_.xor(response.fields, this.table.columns.map(c => c.columnName)).length > 0) {
               log.debug('table has changed, updating')
-              await this.$store.dispatch('updateTableColumns', this.table)
+              await timeAsync('tableview.updateTableColumns', () => this.$store.dispatch('updateTableColumns', this.table))
             }
 
             const r = response.result;
@@ -2015,7 +2026,7 @@ export default Vue.extend({
               row[this.internalIndexColumn] = primaryValues.join(",");
             });
 
-            const data = this.dataToTableData({ rows: r }, this.tableColumns, offset);
+            const data = timeSync('tableview.dataToTableData', () => this.dataToTableData({ rows: r }, this.tableColumns, offset));
             this.data = Object.freeze(data)
             this.lastUpdated = Date.now()
             this.preLoadScrollPosition = this.tableHolder.scrollLeft
@@ -2024,6 +2035,7 @@ export default Vue.extend({
             })
             // Removed getTableKeys() call here to fix 5-10 second performance regression
             // Keys are now fetched only on initialization and explicit refresh (issue #3775)
+            this.tabulatorProcessStart = performance.now()
             resolve({
               last_page: 1,
               data

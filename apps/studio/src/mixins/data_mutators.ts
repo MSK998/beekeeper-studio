@@ -76,7 +76,8 @@ export default {
       const classNames = []
       let cellValue = cell.getValue()
       const isBinary = cellValue instanceof Uint8Array
-      const formatStart = isBinary && profilingEnabled() ? performance.now() : 0
+      const allStart = profilingEnabled() ? performance.now() : 0
+      const formatStart = isBinary && allStart ? performance.now() : 0
       const formatBytes = formatStart ? cellValue.byteLength : 0
 
       if (isBinary) {
@@ -85,6 +86,7 @@ export default {
 
       const nullValue = emptyResult(cellValue)
       if (nullValue) {
+        if (allStart) accumulate('render.cellFormatter.all', performance.now() - allStart)
         return nullValue
       }
       cellValue = this.niceString(cellValue, true, params.binaryEncoding)
@@ -111,6 +113,7 @@ export default {
 
       cell.getElement().classList.add(...classNames)
 
+      if (allStart) accumulate('render.cellFormatter.all', performance.now() - allStart)
       return result;
     },
     yesNoFormatter: helpers.yesNoFormatter,

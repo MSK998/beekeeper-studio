@@ -2,6 +2,7 @@ import _ from 'lodash'
 import { Dialect } from '@shared/lib/dialects/models'
 import { friendlyJsonObject, stringifyWithBigInt } from '@/common/utils';
 import rawLog from '@bksLogger';
+import { accumulate, profilingEnabled } from '@/lib/perf';
 
 const log = rawLog.scope('data/tools')
 
@@ -56,12 +57,16 @@ export const Mutators = {
     if (ArrayBuffer.isView(value)) {
       return value
     }
-    if (typeof value === 'bigint') return Number(value)
-    if (_.isDate(value)) return value.toISOString()
-    if (_.isArray(value)) return preserveComplex? value.map((v) => mutate(v, preserveComplex)) : stringifyWithBigInt(value)
-    if (_.isObject(value)) return preserveComplex? _.mapValues(value, (v) => mutate(v, preserveComplex)) : stringifyWithBigInt(value)
-    if (_.isBoolean(value)) return value
-    return value
+    const start = profilingEnabled() ? performance.now() : 0
+    let result: JsonFriendly
+    if (typeof value === 'bigint') result = Number(value)
+    else if (_.isDate(value)) result = value.toISOString()
+    else if (_.isArray(value)) result = preserveComplex? value.map((v) => mutate(v, preserveComplex)) : stringifyWithBigInt(value)
+    else if (_.isObject(value)) result = preserveComplex? _.mapValues(value, (v) => mutate(v, preserveComplex)) : stringifyWithBigInt(value)
+    else if (_.isBoolean(value)) result = value
+    else result = value
+    if (start) accumulate('mutator.generic', performance.now() - start)
+    return result
   },
   /**
    * Convert bit(1) data to a number for use in UIs and JSON.
@@ -107,8 +112,11 @@ export const Mutators = {
   /** Stringify json data for MySQL column */
   jsonMutator(value: any): JsonFriendly {
     if(!_.isObject(value)) return value;
+    const start = profilingEnabled() ? performance.now() : 0
     try {
-      return friendlyJsonObject(value)
+      const result = friendlyJsonObject(value)
+      if (start) accumulate('mutator.json', performance.now() - start)
+      return result
     } catch (e) {
       // the errors should be harmless. avoid throwing it cause it'll break our table.
       log.debug(`error stringifying json: ${e}`, value)

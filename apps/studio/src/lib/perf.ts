@@ -90,3 +90,21 @@ if (profilingEnabled() && typeof setInterval === "function") {
     timer.unref();
   }
 }
+
+// Renderer only: catch main-thread stalls >50ms from ANY source (GC, layout,
+// un-instrumented code) so lockups can be attributed by timestamp correlation.
+if (profilingEnabled() && typeof PerformanceObserver !== "undefined" && typeof window !== "undefined") {
+  try {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        record("longtask", entry.duration);
+        if (entry.duration >= 100) {
+          log.info(`[perf] long task: ${entry.duration.toFixed(1)}ms at t=${(entry.startTime / 1000).toFixed(2)}s`);
+        }
+      }
+    });
+    observer.observe({ entryTypes: ["longtask"] });
+  } catch (e) {
+    log.debug("[perf] longtask observer unavailable", e);
+  }
+}
