@@ -79,11 +79,14 @@ export function reset(): void {
 if (typeof window !== "undefined") {
   (window as any).__bksPerfReport = report;
   (window as any).__bksPerfReset = reset;
+}
 
-  let timer: ReturnType<typeof setInterval> | null = null;
-  const ensureAutoReport = () => {
-    if (timer || !profilingEnabled()) return;
-    timer = setInterval(report, AUTO_REPORT_INTERVAL_MS);
-  };
-  ensureAutoReport();
+// Auto-report in every process that has profiling enabled (renderer, main,
+// utility). Stats are per-process, so the utility process needs its own flush
+// for pg.selectTop.query / db.serializeQueryResult to show up anywhere.
+if (profilingEnabled() && typeof setInterval === "function") {
+  const timer: ReturnType<typeof setInterval> = setInterval(report, AUTO_REPORT_INTERVAL_MS);
+  if (typeof timer.unref === "function") {
+    timer.unref();
+  }
 }

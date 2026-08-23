@@ -77,6 +77,7 @@ export default {
       let cellValue = cell.getValue()
       const isBinary = cellValue instanceof Uint8Array
       const formatStart = isBinary && profilingEnabled() ? performance.now() : 0
+      const formatBytes = formatStart ? cellValue.byteLength : 0
 
       if (isBinary) {
         classNames.push('binary-type')
@@ -88,7 +89,7 @@ export default {
       }
       cellValue = this.niceString(cellValue, true, params.binaryEncoding)
       if (formatStart) {
-        accumulate('render.cellFormatter.binary', performance.now() - formatStart)
+        accumulate('render.cellFormatter.binary', performance.now() - formatStart, formatBytes)
       }
       cellValue = cellValue.replace(/\n/g, ' ↩ ');
 
