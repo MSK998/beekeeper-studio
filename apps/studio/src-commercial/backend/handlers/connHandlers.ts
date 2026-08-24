@@ -13,7 +13,6 @@ import { AzureAuthService } from "@/lib/db/authentication/azure";
 import bksConfig from "@/common/bksConfig";
 import { UserPin } from "@/common/appdb/models/UserPin";
 import { waitPromise } from "@/common/utils";
-import { timeAsync } from "@/lib/perf";
 
 export interface IConnectionHandlers {
   // Connection management from the store **************************************
@@ -531,7 +530,7 @@ export const ConnHandlers: IConnectionHandlers = {
 
   'conn/selectTop': async function({ table, offset, limit, orderBy, filters, schema, selects, sId }: { table: string, offset: number, limit: number, orderBy: OrderBy[], filters: string | TableFilter[], schema?: string, selects?: string[], sId: string }) {
     checkConnection(sId);
-    return await timeAsync('util.conn/selectTop', () => state(sId).connection.selectTop(table, offset, limit, orderBy, filters, schema, selects));
+    return await state(sId).connection.selectTop(table, offset, limit, orderBy, filters, schema, selects);
   },
 
   'conn/selectTopSql': async function({ table, offset, limit, orderBy, filters, schema, selects, sId }: { table: string, offset: number, limit: number, orderBy: OrderBy[], filters: string | TableFilter[], schema?: string, selects?: string[], sId: string }) {

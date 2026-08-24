@@ -315,6 +315,16 @@ export function typedArrayToString(typedArray: ArrayBufferView, forceEncoding?: 
   return encoding === 'base64' ? typedArray.toBase64() : typedArray.toHex();
 }
 
+/**
+ * Number of characters `typedArrayToString` would produce for a buffer of
+ * `byteLength` bytes, without doing the conversion. Lets callers decide
+ * whether a buffer needs truncating before paying to encode it.
+ */
+export function encodedStringLength(byteLength: number, forceEncoding?: 'hex' | 'base64') {
+  const encoding = forceEncoding || window.bksConfig.ui.general.binaryEncoding
+  return encoding === 'base64' ? Math.ceil(byteLength / 3) * 4 : byteLength * 2
+}
+
 export function stringToTypedArray(str: string, forceEncoding?: 'hex' | 'base64') {
   const encoding = forceEncoding || window.bksConfig.ui.general.binaryEncoding
   if (encoding === 'base64') {

@@ -28,7 +28,6 @@ import { IDbConnectionServer } from '../backendTypes';
 import { GenericBinaryTranscoder } from "../serialization/transcoders";
 import {AzureAuthService} from "@/lib/db/authentication/azure";
 import { IdentifyResult } from 'sql-query-identifier/lib/defines';
-import { timeAsync } from '../../perf';
 
 const PD = PostgresData
 
@@ -1145,7 +1144,7 @@ export class PostgresClient extends BasicDatabaseClient<QueryResult, PoolClient>
 
   async selectTop(table: string, offset: number, limit: number, orderBy: OrderBy[], filters: string | TableFilter[], schema: string = this._defaultSchema, selects?: string[]): Promise<TableResult> {
     const qs = await this._selectTopSql(table, offset, limit, orderBy, filters, schema, selects)
-    const result = await timeAsync('pg.selectTop.query', () => this.driverExecuteSingle(qs.query, { params: qs.params }))
+    const result = await this.driverExecuteSingle(qs.query, { params: qs.params })
     const fields = this.parseQueryResultColumns(result)
     const rows = await this.serializeQueryResult(result, fields)
     return { result: rows, fields }

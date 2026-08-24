@@ -1,4 +1,4 @@
-import { checkEmptyFilters, isBlank, removeUnsortableColumnsFromSortBy, isNumericDataType, isDateDataType, typedArrayToString } from "@/common/utils"
+import { checkEmptyFilters, isBlank, removeUnsortableColumnsFromSortBy, isNumericDataType, isDateDataType, typedArrayToString, encodedStringLength } from "@/common/utils"
 import { PostgresData } from '@/shared/lib/dialects/postgresql'
 import { MysqlData } from '@/shared/lib/dialects/mysql'
 import { SqliteData } from '@/shared/lib/dialects/sqlite'
@@ -264,5 +264,21 @@ describe("typedArrayToString", () => {
     const result = typedArrayToString(view, 'hex', 256)
     expect(result).toHaveLength(256)
     expect(result.startsWith('010203')).toBe(true)
+  })
+})
+
+describe("encodedStringLength", () => {
+  it('matches what typedArrayToString actually produces', () => {
+    for (const length of [0, 1, 2, 3, 4, 5, 17, 100]) {
+      const bytes = Uint8Array.from({ length }, (_, i) => i % 256)
+      expect(encodedStringLength(length, 'hex')).toBe(typedArrayToString(bytes, 'hex').length)
+      expect(encodedStringLength(length, 'base64')).toBe(typedArrayToString(bytes, 'base64').length)
+    }
+  })
+
+  it('does not need the buffer to compute the length', () => {
+    // The whole point: decide whether to truncate without paying to encode.
+    expect(encodedStringLength(1_000_000, 'hex')).toBe(2_000_000)
+    expect(encodedStringLength(1_000_000, 'base64')).toBe(1_333_336)
   })
 })

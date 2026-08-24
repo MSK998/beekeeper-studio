@@ -1,7 +1,6 @@
 import { NgQueryResult, QueryResult } from "@/lib/db/models";
 import { checkConnection, errorMessages, state } from "./handlerState";
 import BksConfig from '@/common/bksConfig';
-import { timeAsync } from '@/lib/perf';
 import _ from 'lodash';
 
 
@@ -18,7 +17,7 @@ export const QueryHandlers: IQueryHandlers = {
       throw new Error(errorMessages.noQuery);
     }
 
-    const result = await timeAsync('util.query/execute', () => query.execute());
+    const result = await query.execute();
     state(sId).queries.delete(queryId);
 
     return result.map((r: NgQueryResult) => {
