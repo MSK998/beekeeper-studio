@@ -149,6 +149,10 @@ export default Vue.extend({
       if (!this.hidden) this.reinitializeTextEditor++;
     },
     dataId() {
+      // A restored path only makes sense for the row it was restored on.
+      // Leaving them set means the next row pays for full binary conversion on
+      // a path the user never expanded.
+      this.restoredTruncatedPaths = []
       if (this.expandFKDetailsByDefault) {
         this.expandablePaths.forEach((expandablePath: ExpandablePath) => {
           // Expand only the first level
