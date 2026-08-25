@@ -21,8 +21,10 @@ describe('niceString', () => {
     const result = helpers.niceString(bigBinary, true, 'hex')
 
     expect(result.length).toBe(MAX_CELL_CHARS)
+    // truncated cells keep the `...` cue, same as an over-long string
+    expect(result.endsWith('...')).toBe(true)
     // only the first bytes are needed to render a truncated cell
-    expect(result.startsWith(toHex(bigBinary.subarray(0, 127)))).toBe(true)
+    expect(result.startsWith(toHex(bigBinary.subarray(0, 126)))).toBe(true)
   })
 
   it('never stringifies typed arrays element-by-element', () => {
@@ -56,6 +58,23 @@ describe('niceString', () => {
     const result = helpers.niceString(value, true, 'hex')
 
     expect(result.length).toBe(MAX_CELL_CHARS)
+  })
+
+  it('marks truncated base64 binaries with an ellipsis too', () => {
+    const bigBinary = Uint8Array.from({ length: 4096 }, (_, i) => i % 256)
+    const result = helpers.niceString(bigBinary, true, 'base64')
+
+    expect(result.length).toBe(MAX_CELL_CHARS)
+    expect(result.endsWith('...')).toBe(true)
+  })
+
+  it('does not truncate a binary that exactly fills a cell', () => {
+    // 128 bytes is exactly 256 hex chars -- the whole value fits, so no cue
+    const exact = Uint8Array.from({ length: 128 }, (_, i) => i % 256)
+    const result = helpers.niceString(exact, true, 'hex')
+
+    expect(result).toBe(toHex(exact))
+    expect(result.endsWith('...')).toBe(false)
   })
 
   it('does not truncate short values', () => {

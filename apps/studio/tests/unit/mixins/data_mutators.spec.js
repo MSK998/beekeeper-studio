@@ -84,7 +84,8 @@ describe("binary cell rendering", () => {
     const content = formatted.replace(/^<pre>/, '').replace(/<\/pre>$/, '')
 
     expect(content.length).toBeLessThanOrEqual(256)
-    expect(content.startsWith(hexOf(bigBinary.subarray(0, 127)))).toBe(true)
+    expect(content.endsWith('...')).toBe(true)
+    expect(content.startsWith(hexOf(bigBinary.subarray(0, 126)))).toBe(true)
   })
 
   it('cellFormatter renders small binaries in full', () => {

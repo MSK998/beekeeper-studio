@@ -43,7 +43,9 @@ function yesNoResult(value: boolean) {
 export const MAX_CELL_CHARS = 256;
 
 export function niceString(value: any, truncate = false, binaryEncoding?: 'hex' | 'base64') {
-  const maxChars = truncate ? MAX_CELL_CHARS : undefined
+  // Convert a little past the cell budget so an over-long binary still trips
+  // _.truncate below and keeps its `...` cue, the same as a long string.
+  const maxChars = truncate ? MAX_CELL_CHARS + 4 : undefined
   let cellValue: string
   if (_.isTypedArray(value)) {
     // NOTE: typed arrays must be converted via typedArrayToString. Calling
